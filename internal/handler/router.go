@@ -30,6 +30,10 @@ func NewRouter(h Handlers) http.Handler {
 	r.Use(RequestID)
 	r.Use(Logger)
 
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/docs", http.StatusTemporaryRedirect)
+	})
+
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		response.OK(w, map[string]string{"status": "ok"})
 	})
