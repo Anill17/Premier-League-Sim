@@ -101,7 +101,7 @@ type SimulationService struct {
 }
 
 // NewSimulationService is the only place this struct should be
-// constructed. Composition root: cmd/main.go.
+// constructed. Composition root: cmd/server/main.go.
 func NewSimulationService(
 	fixtures domain.FixtureRepository,
 	standings domain.StandingsRepository,

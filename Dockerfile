@@ -14,7 +14,7 @@ COPY . .
 # so the final image has no glibc dependency.
 ENV CGO_ENABLED=0
 RUN go mod tidy && \
-    go build -trimpath -ldflags="-s -w" -o /out/league-api ./cmd
+    go build -trimpath -ldflags="-s -w" -o /out/league-api ./cmd/server
 
 # ------------------------------------------------------------
 

@@ -3,7 +3,7 @@
 A production-grade Go REST API that simulates a 4-team, double round-robin
 mini Premier League over 6 weeks. The simulator uses a Poisson xG model
 for match results and a 10,000-run Monte Carlo for championship
-probabilities. The whole stack is wired together in `cmd/main.go` —
+probabilities. The whole stack is wired together in `cmd/server/main.go` —
 nothing else constructs concrete dependencies.
 
 ## Requirements compliance (cursorrules checklist)
@@ -36,7 +36,7 @@ unit tests—is aligned with the task brief.
 
 ```
                 ┌───────────────────────────────────────────────┐
-                │                cmd/main.go                    │
+                │           cmd/server/main.go                │
                 │   (composition root — wires everything)       │
                 └───────────────────────────────────────────────┘
                                  │ depends on interfaces only
@@ -237,7 +237,7 @@ to prevent concurrent simulations from double-playing the same matches.
 - **I** — Repositories are split into `*Reader` and `*Writer` halves
   so services that only read depend only on the read half.
 - **D** — Services accept interfaces, never concrete types.
-  `cmd/main.go` is the **only** composition root.
+  `cmd/server/main.go` is the **only** composition root.
 
 ### Where is DRY enforced?
 

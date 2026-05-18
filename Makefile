@@ -17,11 +17,11 @@ help: ## Print this help.
 
 run: ## Run the API locally (loads DATABASE_URL from .env).
 	@$(MAKE) --no-print-directory check-env
-	@set -a; source .env; set +a; go run ./cmd
+	@set -a; source .env; set +a; go run ./cmd/server
 
 build: ## Compile the binary into ./bin.
 	@mkdir -p bin
-	go build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd
+	go build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd/server
 
 test: ## Run all unit tests.
 	go test ./...
