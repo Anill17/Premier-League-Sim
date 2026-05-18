@@ -1,0 +1,672 @@
+openapi: 3.0.3
+info:
+  title: Football League Simulation API
+  description: |
+    4-team mini league over 6 weeks — Poisson match simulation and Monte Carlo championship odds.
+
+    Every JSON response uses the same envelope:
+    `{ "success": bool, "data": … | null, "error": { "code", "message" } | null }`.
+  version: "1.0.0"
+
+servers:
+  - url: /
+    description: Same origin as the API (use with Swagger UI “Try it out”)
+
+tags:
+  - name: Meta
+  - name: Seasons
+  - name: Fixtures
+
+paths:
+  /health:
+    get:
+      tags: [Meta]
+      summary: Liveness probe
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeHealth"
+
+  /api/seasons:
+    post:
+      tags: [Seasons]
+      summary: Create season (schedule + standings + form init)
+      responses:
+        "201":
+          description: Season created with fixtures
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeSeasonWithFixtures"
+        "422":
+          description: No teams in database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeError"
+
+  /api/seasons/{id}:
+    get:
+      tags: [Seasons]
+      summary: Get season by id
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+      responses:
+        "200":
+          description: Season row
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeSeason"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/seasons/{id}/standings:
+    get:
+      tags: [Seasons]
+      summary: League table (sorted with tie-breakers)
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+      responses:
+        "200":
+          description: Standings with team names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeStandingsWithTeamArray"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/seasons/{id}/fixtures:
+    get:
+      tags: [Seasons]
+      summary: All fixtures grouped by week number
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+      responses:
+        "200":
+          description: Map week → fixtures (keys are strings in JSON)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeFixturesByWeek"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/seasons/{id}/week/{week}:
+    get:
+      tags: [Seasons]
+      summary: Fixtures + standings snapshot for one week
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+        - $ref: "#/components/parameters/Week"
+      responses:
+        "200":
+          description: Week view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeWeekView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/seasons/{id}/next-week:
+    post:
+      tags: [Seasons]
+      summary: Simulate next unplayed week
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+      responses:
+        "200":
+          description: Results + standings (+ predictions when week ≥ 4)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeWeekResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Week already played or season complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/seasons/{id}/play-all:
+    post:
+      tags: [Seasons]
+      summary: Simulate every remaining week (one transaction per week)
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+      responses:
+        "200":
+          description: Full season simulation summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopePlayAllResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Conflict (e.g. nothing left to play)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/seasons/{id}/predictions:
+    get:
+      tags: [Seasons]
+      summary: Latest championship probabilities snapshot
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+      responses:
+        "200":
+          description: Predictions with team names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopePredictionWithTeamArray"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/seasons/{id}/predictions/{week}:
+    get:
+      tags: [Seasons]
+      summary: Championship probabilities after a given week
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+        - $ref: "#/components/parameters/Week"
+      responses:
+        "200":
+          description: Predictions with team names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopePredictionWithTeamArray"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/seasons/{id}/reset:
+    delete:
+      tags: [Seasons]
+      summary: Reset season progress (fixtures/standings/form/predictions)
+      parameters:
+        - $ref: "#/components/parameters/SeasonId"
+      responses:
+        "200":
+          description: Acknowledgement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      season_id:
+                        type: integer
+                      reset:
+                        type: boolean
+                  error:
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/fixtures/{id}:
+    put:
+      tags: [Fixtures]
+      summary: Edit a fixture result (recalculates standings + predictions)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Fixture primary key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditFixturePayload"
+            examples:
+              sample:
+                value:
+                  home_goals: 3
+                  away_goals: 1
+      responses:
+        "200":
+          description: Updated fixture + standings + predictions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeEditFixtureResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  parameters:
+    SeasonId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+      description: Season primary key
+    Week:
+      name: week
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 6
+      description: Match week (1–6)
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EnvelopeError"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EnvelopeError"
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EnvelopeError"
+
+  schemas:
+    APIError:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+
+    EnvelopeError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          nullable: true
+        error:
+          $ref: "#/components/schemas/APIError"
+
+    EnvelopeHealth:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              example: ok
+        error:
+          nullable: true
+
+    Season:
+      type: object
+      properties:
+        id:
+          type: integer
+        current_week:
+          type: integer
+        is_complete:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    FixtureWithTeams:
+      type: object
+      properties:
+        id:
+          type: integer
+        season_id:
+          type: integer
+        week:
+          type: integer
+        home_team_id:
+          type: integer
+        away_team_id:
+          type: integer
+        home_goals:
+          type: integer
+          nullable: true
+        away_goals:
+          type: integer
+          nullable: true
+        played:
+          type: boolean
+        played_at:
+          type: string
+          format: date-time
+          nullable: true
+        home_team_name:
+          type: string
+        away_team_name:
+          type: string
+
+    SeasonWithFixtures:
+      type: object
+      properties:
+        season:
+          $ref: "#/components/schemas/Season"
+        fixtures:
+          type: array
+          items:
+            $ref: "#/components/schemas/FixtureWithTeams"
+
+    EnvelopeSeasonWithFixtures:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/SeasonWithFixtures"
+        error:
+          nullable: true
+
+    EnvelopeSeason:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/Season"
+        error:
+          nullable: true
+
+    StandingWithTeam:
+      type: object
+      properties:
+        id:
+          type: integer
+        season_id:
+          type: integer
+        team_id:
+          type: integer
+        played:
+          type: integer
+        won:
+          type: integer
+        drawn:
+          type: integer
+        lost:
+          type: integer
+        goals_for:
+          type: integer
+        goals_against:
+          type: integer
+        goal_difference:
+          type: integer
+        points:
+          type: integer
+        team_name:
+          type: string
+
+    EnvelopeStandingsWithTeamArray:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingWithTeam"
+        error:
+          nullable: true
+
+    FixturesByWeek:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          $ref: "#/components/schemas/FixtureWithTeams"
+      description: Keys are decimal string week numbers ("1".."6")
+
+    EnvelopeFixturesByWeek:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/FixturesByWeek"
+        error:
+          nullable: true
+
+    WeekView:
+      type: object
+      properties:
+        week:
+          type: integer
+        fixtures:
+          type: array
+          items:
+            $ref: "#/components/schemas/FixtureWithTeams"
+        standings:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingWithTeam"
+
+    EnvelopeWeekView:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/WeekView"
+        error:
+          nullable: true
+
+    MatchResult:
+      type: object
+      properties:
+        home_goals:
+          type: integer
+        away_goals:
+          type: integer
+        home_xg:
+          type: number
+          format: float
+        away_xg:
+          type: number
+          format: float
+
+    PlayedMatch:
+      type: object
+      properties:
+        fixture:
+          $ref: "#/components/schemas/FixtureWithTeams"
+        result:
+          $ref: "#/components/schemas/MatchResult"
+
+    PredictionWithTeam:
+      type: object
+      properties:
+        id:
+          type: integer
+        season_id:
+          type: integer
+        week:
+          type: integer
+        team_id:
+          type: integer
+        championship_probability:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+        team_name:
+          type: string
+
+    WeekResult:
+      type: object
+      properties:
+        week:
+          type: integer
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayedMatch"
+        standings:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingWithTeam"
+        predictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PredictionWithTeam"
+
+    EnvelopeWeekResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/WeekResult"
+        error:
+          nullable: true
+
+    PlayAllResult:
+      type: object
+      properties:
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeekResult"
+        final_standings:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingWithTeam"
+        final_predictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PredictionWithTeam"
+
+    EnvelopePlayAllResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/PlayAllResult"
+        error:
+          nullable: true
+
+    EnvelopePredictionWithTeamArray:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/PredictionWithTeam"
+        error:
+          nullable: true
+
+    EditFixturePayload:
+      type: object
+      required: [home_goals, away_goals]
+      properties:
+        home_goals:
+          type: integer
+          minimum: 0
+        away_goals:
+          type: integer
+          minimum: 0
+
+    EditFixtureResult:
+      type: object
+      properties:
+        fixture:
+          $ref: "#/components/schemas/FixtureWithTeams"
+        standings:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingWithTeam"
+        predictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PredictionWithTeam"
+
+    EnvelopeEditFixtureResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/EditFixtureResult"
+        error:
+          nullable: true

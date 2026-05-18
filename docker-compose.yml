@@ -1,0 +1,39 @@
+# =====================================================================
+# docker-compose.yml
+#
+# This project uses a hosted Postgres on Supabase. No local `db` service
+# is defined or required — Supabase IS the database.
+#
+# DATABASE_URL is read from the project-root `.env` file (which must
+# never be committed). The `${VAR:?msg}` syntax makes `docker compose up`
+# fail fast with a clear message if `.env` is missing or incomplete.
+#
+# Usage:
+#   make docker-up      # build + run
+#   make docker-logs    # tail logs
+#   make docker-down    # stop + remove
+# =====================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: league-api:latest
+    container_name: league-api
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set in .env to a Supabase Session-pooler URL (port 5432, sslmode=require)}
+      PORT: ${PORT:-8080}
+      ENV: ${ENV:-production}
+
+    ports:
+      - "${PORT:-8080}:8080"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
