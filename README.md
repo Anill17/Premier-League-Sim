@@ -117,18 +117,22 @@ unit tests—is aligned with the task brief.
 ## Team Ratings
 
 Team attributes (attack, defense, midfield, home advantage, strength)
-are derived programmatically from EA FC 25 squad ratings.
+are fixed FC 25 ratings defined in `cmd/seed/main.go` and upserted
+into the `teams` table on setup.
 
-The seed script fetches the top 11 players by overall rating for each
-team from the EA FC 25 drop API, aggregates their positional attributes,
-normalizes the values across all 4 teams, and upserts into the teams table.
+| Team | Attack | Defense | Midfield | HomeAdv | Strength |
+|---|---|---|---|---|---|
+| Manchester City | 90 | 85 | 88 | 7 | 88 |
+| Arsenal | 84 | 80 | 83 | 8 | 82 |
+| Liverpool | 86 | 78 | 80 | 8 | 80 |
+| Chelsea | 79 | 76 | 78 | 6 | 78 |
+
+Home advantage is derived from real stadium capacities (Arsenal 60 704,
+Liverpool 61 276 → 8; City 53 400 → 7; Chelsea 40 343 → 6).
 
 To run:
-  make seed          # fetch from API and insert into DB
-  make seed-dry      # preview computed ratings without inserting
-
-Stadium home advantage is derived from real stadium capacities.
-This approach ensures ratings are data-driven and reproducible.
+  make seed      # upsert team ratings into DB
+  make seed-dry  # preview ratings without inserting
 
 ## Environment variables
 
@@ -294,7 +298,7 @@ to prevent concurrent simulations from double-playing the same matches.
   `standingsOrderBy` constant in `repository/standings_repo.go`.
 - `pkg/poisson` is the only place that samples a Poisson distribution.
 - All error codes are constants in `pkg/response/response.go`.
-- Team attributes are not hardcoded. They are derived from EA FC 25
-  squad ratings via a standalone seed script (`cmd/seed/main.go`).
-  This makes the simulation data-driven and the ratings reproducible
-  and updatable for any future season.
+- Team attributes are defined once in `cmd/seed/main.go` and upserted
+  via `make seed`. The API layer never hardcodes ratings — it always
+  reads from the database, so ratings can be updated without touching
+  service or handler code.
