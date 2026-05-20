@@ -1,6 +1,0 @@
--- =====================================================================
--- 002_seed.sql
--- =====================================================================
--- Team data is seeded programmatically via cmd/seed/main.go
--- Run: go run cmd/seed/main.go
--- Use --dry-run flag to preview without inserting

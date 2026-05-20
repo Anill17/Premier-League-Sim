@@ -10,7 +10,7 @@ BIN   := bin/$(APP)
 
 .PHONY: help run build test test-race tidy fmt vet \
         docker-up docker-down docker-logs \
-        check-env migrate seed seed-dry clean
+        check-env migrate clean
 
 help: ## Print this help.
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "  \033[1m%-14s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -64,18 +64,10 @@ docker-down: ## Stop and remove the API container.
 docker-logs: ## Tail the app container logs.
 	docker compose logs -f app
 
-seed: ## Fetch EA FC 25 ratings from the drop API and upsert into teams table.
-	@$(MAKE) --no-print-directory check-env
-	@set -a; source .env; set +a; go run ./cmd/seed
-
-seed-dry: ## Preview EA FC 25 computed ratings without inserting into DB.
-	@set -a; source .env; set +a; go run ./cmd/seed --dry-run
-
-migrate: ## Apply migrations against the DATABASE_URL in .env via psql.
+migrate: ## Apply schema and seed teams against the DATABASE_URL in .env via psql.
 	@$(MAKE) --no-print-directory check-env
 	@set -a; source .env; set +a; \
-	  psql "$$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_schema.sql && \
-	  psql "$$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002_seed.sql
+	  psql "$$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_schema.sql
 
 clean: ## Remove build artifacts.
 	rm -rf bin

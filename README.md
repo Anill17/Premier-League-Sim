@@ -85,7 +85,7 @@ unit tests—is aligned with the task brief.
    # Edit .env: paste your Session pooler connection string + password.
    ```
 
-3. **Apply database migrations once** (schema + seed teams):
+3. **Apply the schema migration once** (creates all tables and seeds the 4 teams):
 
    ```bash
    make migrate
@@ -114,26 +114,6 @@ unit tests—is aligned with the task brief.
    Expected JSON shape: `{ "success": true, "data": { "status": "ok" }, "error": null }`  
    (exact field order may vary).
 
-## Team Ratings
-
-Team attributes (attack, defense, midfield, home advantage, strength)
-are fixed FC 25 ratings defined in `cmd/seed/main.go` and upserted
-into the `teams` table on setup.
-
-| Team | Attack | Defense | Midfield | HomeAdv | Strength |
-|---|---|---|---|---|---|
-| Manchester City | 90 | 85 | 88 | 7 | 88 |
-| Arsenal | 84 | 80 | 83 | 8 | 82 |
-| Liverpool | 86 | 78 | 80 | 8 | 80 |
-| Chelsea | 79 | 76 | 78 | 6 | 78 |
-
-Home advantage is derived from real stadium capacities (Arsenal 60 704,
-Liverpool 61 276 → 8; City 53 400 → 7; Chelsea 40 343 → 6).
-
-To run:
-  make seed      # upsert team ratings into DB
-  make seed-dry  # preview ratings without inserting
-
 ## Environment variables
 
 | Variable       | Required | Description |
@@ -146,14 +126,12 @@ To run:
 
 ## Migrations
 
-SQL files live in `db/migrations/`:
-
 ```bash
-make migrate    # loads .env then runs 001_schema.sql + 002_seed.sql via psql
+make migrate    # loads .env and runs 001_schema.sql via psql
 ```
 
-Re-running is mostly idempotent (`CREATE TABLE IF NOT EXISTS`, seed uses
-`ON CONFLICT DO NOTHING` on team names).
+Idempotent: `CREATE TABLE IF NOT EXISTS` and `ON CONFLICT (name) DO NOTHING`
+on the team insert, so re-running is safe.
 
 ## API
 
@@ -298,7 +276,7 @@ to prevent concurrent simulations from double-playing the same matches.
   `standingsOrderBy` constant in `repository/standings_repo.go`.
 - `pkg/poisson` is the only place that samples a Poisson distribution.
 - All error codes are constants in `pkg/response/response.go`.
-- Team attributes are defined once in `cmd/seed/main.go` and upserted
-  via `make seed`. The API layer never hardcodes ratings — it always
-  reads from the database, so ratings can be updated without touching
-  service or handler code.
+- Team attributes are defined once in `db/migrations/001_schema.sql`
+  and inserted at migration time. The API layer always reads from the
+  database, so ratings can be updated without touching service or
+  handler code.
