@@ -127,11 +127,11 @@ unit tests—is aligned with the task brief.
 ## Migrations
 
 ```bash
-make migrate    # loads .env and runs 001_schema.sql via psql
+make migrate    # runs 001_schema.sql then 002_seed.sql via psql
 ```
 
-Idempotent: `CREATE TABLE IF NOT EXISTS` and `ON CONFLICT (name) DO NOTHING`
-on the team insert, so re-running is safe.
+Both files are idempotent: `CREATE TABLE IF NOT EXISTS` for the schema,
+`ON CONFLICT (name) DO NOTHING` for the team insert.
 
 ## API
 
