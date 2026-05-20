@@ -5,7 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/insider/league-api/internal/domain"
+	"github.com/Anill17/league-api/internal/domain"
 )
 
 // TxManagerMock is a domain.TxManager that, by default, executes the

@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/insider/league-api/pkg/response"
+	"github.com/Anill17/league-api/pkg/response"
 )
 
 // Handlers groups every concrete handler so router wiring is a single

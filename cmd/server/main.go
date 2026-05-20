@@ -16,11 +16,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/insider/league-api/config"
-	"github.com/insider/league-api/internal/handler"
-	"github.com/insider/league-api/internal/repository"
-	"github.com/insider/league-api/internal/service"
-	"github.com/insider/league-api/pkg/cache"
+	"github.com/Anill17/league-api/config"
+	"github.com/Anill17/league-api/internal/handler"
+	"github.com/Anill17/league-api/internal/repository"
+	"github.com/Anill17/league-api/internal/service"
+	"github.com/Anill17/league-api/pkg/cache"
 )
 
 const (

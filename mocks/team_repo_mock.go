@@ -3,7 +3,7 @@ package mocks
 import (
 	"context"
 
-	"github.com/insider/league-api/internal/domain"
+	"github.com/Anill17/league-api/internal/domain"
 )
 
 type TeamRepoMock struct {

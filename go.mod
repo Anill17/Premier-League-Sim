@@ -1,4 +1,4 @@
-module github.com/insider/league-api
+module github.com/Anill17/league-api
 
 go 1.22
 

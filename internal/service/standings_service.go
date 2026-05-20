@@ -6,7 +6,7 @@ package service
 import (
 	"sort"
 
-	"github.com/insider/league-api/internal/domain"
+	"github.com/Anill17/league-api/internal/domain"
 )
 
 // StandingsService is the sole implementation of both

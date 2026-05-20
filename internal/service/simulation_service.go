@@ -9,8 +9,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/insider/league-api/internal/domain"
-	"github.com/insider/league-api/pkg/poisson"
+	"github.com/Anill17/league-api/internal/domain"
+	"github.com/Anill17/league-api/pkg/poisson"
 )
 
 // =====================================================================

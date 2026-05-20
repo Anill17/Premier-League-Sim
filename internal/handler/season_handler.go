@@ -6,12 +6,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/insider/league-api/internal/domain"
-	"github.com/insider/league-api/internal/repository"
-	"github.com/insider/league-api/internal/service"
-	"github.com/insider/league-api/pkg/cache"
-	"github.com/insider/league-api/pkg/response"
-	"github.com/insider/league-api/pkg/validator"
+	"github.com/Anill17/league-api/internal/domain"
+	"github.com/Anill17/league-api/internal/repository"
+	"github.com/Anill17/league-api/internal/service"
+	"github.com/Anill17/league-api/pkg/cache"
+	"github.com/Anill17/league-api/pkg/response"
+	"github.com/Anill17/league-api/pkg/validator"
 )
 
 // SeasonHandler owns every endpoint under /api/seasons. It delegates

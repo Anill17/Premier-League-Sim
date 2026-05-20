@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/insider/league-api/internal/domain"
+	"github.com/Anill17/league-api/internal/domain"
 )
 
 // ptr returns &v — used to construct *int fields on Fixture rows.
