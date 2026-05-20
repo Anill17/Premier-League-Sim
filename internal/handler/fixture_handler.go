@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/insider/league-api/internal/domain"
+	"github.com/insider/league-api/pkg/cache"
 	"github.com/insider/league-api/pkg/response"
 	"github.com/insider/league-api/pkg/validator"
 )
@@ -15,11 +16,12 @@ import (
 // deliberately tiny: parse, validate, delegate.
 type FixtureHandler struct {
 	fixtures domain.FixtureService
+	cache    *cache.Cache
 }
 
 // NewFixtureHandler wires the service dependency.
-func NewFixtureHandler(fixtures domain.FixtureService) *FixtureHandler {
-	return &FixtureHandler{fixtures: fixtures}
+func NewFixtureHandler(fixtures domain.FixtureService, c *cache.Cache) *FixtureHandler {
+	return &FixtureHandler{fixtures: fixtures, cache: c}
 }
 
 // Edit handles PUT /api/fixtures/{id}.
@@ -50,5 +52,6 @@ func (h *FixtureHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
+	h.cache.Evict(cache.StandingsKey(out.Fixture.SeasonID))
 	response.OK(w, out)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/insider/league-api/internal/domain"
 	"github.com/insider/league-api/internal/repository"
 	"github.com/insider/league-api/internal/service"
+	"github.com/insider/league-api/pkg/cache"
 	"github.com/insider/league-api/pkg/response"
 	"github.com/insider/league-api/pkg/validator"
 )
@@ -19,6 +20,7 @@ import (
 type SeasonHandler struct {
 	seasons    domain.SeasonService
 	simulation domain.SimulationService
+	cache      *cache.Cache
 }
 
 // NewSeasonHandler wires the two services. Handlers are stateless so
@@ -26,8 +28,9 @@ type SeasonHandler struct {
 func NewSeasonHandler(
 	seasons domain.SeasonService,
 	simulation domain.SimulationService,
+	c *cache.Cache,
 ) *SeasonHandler {
-	return &SeasonHandler{seasons: seasons, simulation: simulation}
+	return &SeasonHandler{seasons: seasons, simulation: simulation, cache: c}
 }
 
 // Create handles POST /api/seasons.
@@ -62,11 +65,17 @@ func (h *SeasonHandler) GetStandings(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, err.Error())
 		return
 	}
+	key := cache.StandingsKey(id)
+	if v, ok := h.cache.Get(key); ok {
+		response.OK(w, v.([]domain.StandingWithTeam))
+		return
+	}
 	rows, err := h.seasons.GetStandings(r.Context(), id)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
+	h.cache.Set(key, rows)
 	response.OK(w, rows)
 }
 
@@ -117,6 +126,7 @@ func (h *SeasonHandler) SimulateNext(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
+	h.cache.Evict(cache.StandingsKey(id))
 	response.OK(w, out)
 }
 
@@ -132,6 +142,7 @@ func (h *SeasonHandler) PlayAll(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
+	h.cache.Evict(cache.StandingsKey(id))
 	response.OK(w, out)
 }
 
@@ -146,6 +157,7 @@ func (h *SeasonHandler) Reset(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
+	h.cache.Evict(cache.StandingsKey(id))
 	response.OK(w, map[string]any{"season_id": id, "reset": true})
 }
 
