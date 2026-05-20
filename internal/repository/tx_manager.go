@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/insider/league-api/internal/domain"
+	"github.com/Anill17/league-api/internal/domain"
 )
 
 // ErrNotFound is the sentinel returned by every Get-style repository

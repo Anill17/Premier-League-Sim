@@ -85,7 +85,7 @@ unit tests—is aligned with the task brief.
    # Edit .env: paste your Session pooler connection string + password.
    ```
 
-3. **Apply database migrations once** (schema + seed teams):
+3. **Apply the schema migration once** (creates all tables and seeds the 4 teams):
 
    ```bash
    make migrate
@@ -126,14 +126,12 @@ unit tests—is aligned with the task brief.
 
 ## Migrations
 
-SQL files live in `db/migrations/`:
-
 ```bash
-make migrate    # loads .env then runs 001_schema.sql + 002_seed.sql via psql
+make migrate    # runs 001_schema.sql then 002_seed.sql via psql
 ```
 
-Re-running is mostly idempotent (`CREATE TABLE IF NOT EXISTS`, seed uses
-`ON CONFLICT DO NOTHING` on team names).
+Both files are idempotent: `CREATE TABLE IF NOT EXISTS` for the schema,
+`ON CONFLICT (name) DO NOTHING` for the team insert.
 
 ## API
 
@@ -201,14 +199,41 @@ Repository behaviour is exercised through mocks; no real DB required for CI.
 
 ### Why a Poisson xG model?
 
-Football scoring is well-modelled as two near-independent Poisson
-processes (one per side). Modelling expected goals as a product of
-attacking/defensive ratings, home advantage and recent form is the
-de-facto baseline in sports analytics — it's simple, interpretable,
-and produces realistic score distributions. The implementation lives
-behind the `MatchSimulator` interface so a future Elo-, ML- or
-xG-shot-volume-based simulator can be swapped in without touching the
-rest of the codebase.
+At its core, the question "who wins?" is reduced to: how many goals will each team score? Whoever scores more, wins. So the real problem is goal prediction, not win prediction.
+
+**Step 1 — Expected Goals (xG)**
+
+xG answers: given the circumstances of this match, how many goals should each team score on average?
+
+- `xG_home = BASE_RATE × (home.Attack / away.Defense) × homeAdvFactor × formFactor`
+- `xG_away = BASE_RATE × (away.Attack / home.Defense) × formFactor`
+- `BASE_RATE = 1.4`
+
+The base rate of 1.4 comes from real Premier League data — the average team scores approximately 1.4 goals per game. This anchors the entire model to reality.
+
+The **Attack / Defense ratio** captures the strength matchup. If Manchester City (Attack=90) faces Chelsea (Defense=76), the ratio is 90/76 = 1.184 — City is expected to score 18.4% more than the league average against Chelsea's defence. If they face Arsenal (Defense=80) instead, the ratio drops to 1.125. The formula naturally captures relative dominance rather than absolute strength.
+
+The **home advantage factor** is `1.0 + (team.HomeAdvantage / 100)`. Real Premier League data shows home teams win roughly 46% of matches versus 27% for away teams. A HomeAdv of 8 (Arsenal's Emirates) gives a 1.08 multiplier — an 8% boost to xG. Smaller stadiums like Chelsea's Stamford Bridge (HomeAdv=6) give less boost, intentionally grounded in the atmospheric pressure a packed crowd creates.
+
+The **form factor** models momentum. Each of the last 3 results is weighted as Win=1.1, Draw=1.0, Loss=0.9, then averaged. A team on a 3-game winning streak gets a 1.1 multiplier (10% xG boost); a team on 3 losses gets 0.9 (10% reduction). Momentum is a real and measurable phenomenon in football analytics.
+
+**Step 2 — Poisson Distribution**
+
+Once you have xG for each team, you need to convert it into an actual integer goal count. This is where Poisson comes in.
+
+Goals in football are rare, independent events that occur at a roughly constant rate during a match — the textbook definition of a Poisson process. Academic research (Dixon & Coles, 1997 — the foundational paper in football analytics) proved that goals follow a Poisson distribution very closely.
+
+For a given xG (λ), the probability of scoring exactly k goals is: `P(k) = (e^-λ × λ^k) / k!`
+
+With xG = 1.4, this produces: 24.7% chance of 0 goals, 34.5% for 1, 24.2% for 2, 11.3% for 3, 4.0% for 4, and so on. Each team's goals are sampled independently from their own distribution. This means a 0-0 draw is possible even when both xGs are high, a 3-2 thriller can happen between mismatched teams, and upsets occur naturally at statistically realistic rates — without any special-case logic.
+
+**Step 3 — Result Determination**
+
+Once `homeGoals` and `awayGoals` are sampled, the result follows directly: more goals wins (3 points), equal goals draws (1 point each). Goal difference, which is critical for table sorting, falls out of the simulation for free.
+
+**Why this beats simpler approaches**
+
+Most naive approaches either use a random number against a fixed threshold (no scorelines, ignores matchups) or a fixed probability table (rigid, unrealistic distributions). The Poisson xG model produces realistic scorelines from 0-0 to 4-3, generates goal difference automatically, accounts for each specific matchup, incorporates home advantage quantitatively, uses form as a momentum modifier, and is grounded in published football analytics research. The implementation lives behind the `MatchSimulator` interface so a future Elo-, ML-, or shot-volume-based simulator can be swapped in without touching the rest of the codebase.
 
 ### How is ACID enforced?
 
@@ -251,3 +276,7 @@ to prevent concurrent simulations from double-playing the same matches.
   `standingsOrderBy` constant in `repository/standings_repo.go`.
 - `pkg/poisson` is the only place that samples a Poisson distribution.
 - All error codes are constants in `pkg/response/response.go`.
+- Team attributes are defined once in `db/migrations/001_schema.sql`
+  and inserted at migration time. The API layer always reads from the
+  database, so ratings can be updated without touching service or
+  handler code.

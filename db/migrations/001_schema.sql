@@ -68,3 +68,4 @@ CREATE TABLE IF NOT EXISTS predictions (
 CREATE INDEX IF NOT EXISTS idx_fixtures_season_week    ON fixtures(season_id, week);
 CREATE INDEX IF NOT EXISTS idx_standings_season        ON standings(season_id);
 CREATE INDEX IF NOT EXISTS idx_predictions_season_week ON predictions(season_id, week);
+

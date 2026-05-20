@@ -7,9 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/insider/league-api/internal/domain"
-	"github.com/insider/league-api/internal/repository"
-	"github.com/insider/league-api/mocks"
+	"github.com/Anill17/league-api/internal/domain"
+	"github.com/Anill17/league-api/internal/repository"
+	"github.com/Anill17/league-api/mocks"
 )
 
 func newSeasonServiceWithMocks(t *testing.T) (

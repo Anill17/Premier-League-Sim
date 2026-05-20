@@ -16,10 +16,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/insider/league-api/config"
-	"github.com/insider/league-api/internal/handler"
-	"github.com/insider/league-api/internal/repository"
-	"github.com/insider/league-api/internal/service"
+	"github.com/Anill17/league-api/config"
+	"github.com/Anill17/league-api/internal/handler"
+	"github.com/Anill17/league-api/internal/repository"
+	"github.com/Anill17/league-api/internal/service"
+	"github.com/Anill17/league-api/pkg/cache"
 )
 
 const (
@@ -137,10 +138,13 @@ func buildRouter(pool *pgxpool.Pool) http.Handler {
 	)
 	predictionSvc := service.NewPredictionService(predictionRepo)
 
+	// Shared in-memory cache (standings read-through, evicted on every write).
+	c := cache.New()
+
 	// Handlers.
 	handlers := handler.Handlers{
-		Season:     handler.NewSeasonHandler(seasonSvc, simulationSvc),
-		Fixture:    handler.NewFixtureHandler(fixtureSvc),
+		Season:     handler.NewSeasonHandler(seasonSvc, simulationSvc, c),
+		Fixture:    handler.NewFixtureHandler(fixtureSvc, c),
 		Prediction: handler.NewPredictionHandler(predictionSvc),
 	}
 

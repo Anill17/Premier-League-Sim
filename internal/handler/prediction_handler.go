@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/insider/league-api/internal/domain"
-	"github.com/insider/league-api/pkg/response"
-	"github.com/insider/league-api/pkg/validator"
+	"github.com/Anill17/league-api/internal/domain"
+	"github.com/Anill17/league-api/pkg/response"
+	"github.com/Anill17/league-api/pkg/validator"
 )
 
 // PredictionHandler owns the read-only prediction endpoints.

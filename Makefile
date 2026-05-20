@@ -64,7 +64,7 @@ docker-down: ## Stop and remove the API container.
 docker-logs: ## Tail the app container logs.
 	docker compose logs -f app
 
-migrate: ## Apply migrations against the DATABASE_URL in .env via psql.
+migrate: ## Apply all migrations against the DATABASE_URL in .env via psql.
 	@$(MAKE) --no-print-directory check-env
 	@set -a; source .env; set +a; \
 	  psql "$$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_schema.sql && \

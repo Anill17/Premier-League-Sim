@@ -5,8 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/insider/league-api/internal/domain"
-	"github.com/insider/league-api/mocks"
+	"github.com/Anill17/league-api/internal/domain"
+	"github.com/Anill17/league-api/mocks"
 )
 
 func TestFormMultiplier(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/insider/league-api/pkg/response"
+	"github.com/Anill17/league-api/pkg/response"
 )
 
 // ctxKey is unexported so external packages cannot accidentally inject

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/insider/league-api/internal/domain"
+	"github.com/Anill17/league-api/internal/domain"
 )
 
 // =====================================================================
